@@ -1,70 +1,68 @@
-# ==========================
-# Builder stage
-# ==========================
-FROM ghcr.io/jitesoft/debian:bookworm AS builder
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    TZ=UTC
-
-# --- Build dependencies ---
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake g++ make git wget curl tar unzip \
-    software-properties-common apt-transport-https ca-certificates \
-    locales dos2unix jq libtool-bin autoconf automake \
-    zlib1g-dev libbz2-dev libreadline-dev libncurses5-dev libncursesw5-dev \
-    libssl3 libcurl4-gnutls-dev libicu-dev libjsoncpp-dev libpng-dev libjpeg-dev \
-    libxxf86vm-dev libgl1-mesa-dev libsqlite3-dev libogg-dev libvorbis-dev \
-    libopenal-dev libfreetype6-dev libgmp-dev libzstd-dev libluajit-5.1-dev \
-    libirrlicht1.8 libirrlicht-dev libirrlicht-doc libaio1 libncurses5 \
-    && dpkg --add-architecture i386 \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    libtinfo5:i386 libncurses5:i386 libcurl4-gnutls-dev:i386 \
-    lib32gcc-s1 lib32tinfo6 lib32z1 lib32stdc++6 libsdl2-2.0-0:i386 \
-    libsdl1.2debian libfontconfig1 telnet net-tools netcat iproute2 gdb tzdata \
-    && rm -rf /var/lib/apt/lists/*
-
-# --- Timezone & locale ---
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
-    && update-locale LANG=en_US.UTF-8 && dpkg-reconfigure --frontend noninteractive locales
-
-# ==========================
-# Runtime stage
-# ==========================
 FROM ghcr.io/jitesoft/debian:bookworm
+
+LABEL author="Devil38" maintainer="itznya10@gmail.com"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=UTC \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8 \
     USER=container \
     HOME=/home/container
 
-# --- Essential runtime packages only ---
+# Set timezone and locale
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    && apt-get update && apt-get install -y --no-install-recommends locales \
+    && dpkg-reconfigure --frontend noninteractive locales
+
+# Create user and group
+RUN addgroup --gid 998 container \
+ && useradd -m -u 999 -d $HOME -g container -s /bin/bash container
+
+# Base utilities & development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget bash dos2unix tzdata libssl3 libcurl4-gnutls-dev \
-    lib32gcc-s1 lib32stdc++6 libsdl2-2.0-0:i386 libsdl1.2debian \
-    php8.4 php8.4-cli php8.4-common php8.4-fpm php8.4-gd php8.4-mbstring \
-    php8.4-bcmath php8.4-xml php8.4-curl php8.4-zip nginx composer \
-    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    apt-utils curl software-properties-common apt-transport-https ca-certificates \
+    wget tar dirmngr gnupg iproute2 make g++ locales git cmake zip unzip \
+    libtool-bin autoconf automake jq rpl dos2unix iputils-ping \
+    gcc libcairo2-dev libpango1.0-dev libgcc1 gdb libc6 binutils xz-utils \
+    liblzo2-2 net-tools netcat telnet libatomic1 libsdl1.2debian libsdl2-2.0-0 \
+    libicu-dev icu-devtools libunwind8 libmariadb-dev-compat openssl \
+    libc6-dev libstdc++6 libssl-dev libcurl4-gnutls-dev libjsoncpp-dev \
+    python3 python3-pip build-essential zlib1g-dev libbz2-dev libreadline-dev \
+    libncurses5-dev libncursesw5-dev tk-dev libffi-dev less libasound2 \
+    libglib2.0-0 libnss3 libpulse0 libxslt1.1 libyaml-0-2 libpython2.7 \
+    libxkbfile-dev libsecret-1-dev toilet re2c bison file libaio1 \
+    libpng-dev libjpeg-dev libxxf86vm-dev libgl1-mesa-dev libsqlite3-dev \
+    libogg-dev libvorbis-dev libopenal-dev libfreetype6-dev libgmp-dev \
+    libzstd-dev libluajit-5.1-dev libirrlicht1.8 libirrlicht-dev libirrlicht-doc \
+    g++ make libc6-dev cmake xdg-user-dirs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- Create unprivileged user ---
-RUN addgroup --gid 998 container \
- && useradd -m -u 999 -d /home/container -g container -s /bin/bash container
+# i386 libraries for Steamcmd
+RUN dpkg --add-architecture i386 \
+ && apt-get update && apt-get install -y --no-install-recommends \
+    libtinfo5:i386 libncurses5:i386 libcurl3-gnutls:i386 \
+    lib32gcc-s1 lib32stdc++6 lib32z1 libtinfo6:i386 libcurl4:i386 \
+    libsdl2-2.0-0:i386 iproute2 gdb libsdl1.2debian libfontconfig1 \
+    tzdata && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /home/container
-USER container
+# Remove dangerous binaries
+RUN rm -f /usr/bin/dd /usr/bin/fallocate /usr/bin/truncate /usr/bin/xfs_mkfile
 
-# --- Copy only necessary binaries from builder ---
-COPY --from=builder /usr/lib /usr/lib
-COPY --from=builder /usr/lib32 /usr/lib32
-COPY --from=builder /usr/bin/steamcmd /usr/bin/steamcmd
-
-# --- Copy scripts and RCON ---
+# Loader script
 COPY ./minecraft.sh /minecraft.sh
-COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /minecraft.sh \
+ && dos2unix /minecraft.sh
+
+# Install RCON from local file
 COPY ./rcon /usr/local/bin/rcon
+RUN chmod +x /usr/local/bin/rcon
 
-RUN dos2unix /minecraft.sh /entrypoint.sh \
-    && chmod +x /minecraft.sh /entrypoint.sh /usr/local/bin/rcon
+# Switch to non-root user
+USER container
+WORKDIR /home/container
 
-# --- Entrypoint ---
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 CMD ["/bin/bash", "/entrypoint.sh"]
