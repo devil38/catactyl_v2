@@ -22,7 +22,7 @@ RUN addgroup --gid 998 container \
 # Install essential tools, libraries, and 32-bit support for Steamcmd
 RUN dpkg --add-architecture i386 \
  && apt-get update && apt-get install -y --no-install-recommends \
-    curl wget tar unzip dos2unix iputils-ping net-tools netcat telnet tzdata \
+    curl wget tar unzip dos2unix iputils-ping net-tools telnet tzdata \
     lib32gcc-s1 lib32stdc++6 lib32z1 libtinfo5:i386 libncurses5:i386 \
     libcurl3-gnutls:i386 libtinfo6:i386 libcurl4:i386 libsdl2-2.0-0:i386 \
     libsdl1.2debian libfontconfig1 libpulse0 libgl1-mesa-glx libasound2 \
