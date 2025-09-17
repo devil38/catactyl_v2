@@ -1,4 +1,4 @@
-FROM ghcr.io/jitesoft/debian:bookworm
+FROM ghcr.io/jitesoft/debian:bookworm-slim
 
 LABEL author="Devil38" maintainer="itznya10@gmail.com"
 
