@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6-dev libstdc++6 libssl-dev libcurl4-gnutls-dev libjsoncpp-dev \
     python3 python3-pip build-essential zlib1g-dev libbz2-dev libreadline-dev \
     libncurses5-dev libncursesw5-dev tk-dev libffi-dev less libasound2 \
-    libglib2.0-0 libnss3 libpulse0 libxslt1.1 libyaml-0-2 libpython2.7 \
+    libglib2.0-0 libnss3 libpulse0 libxslt1.1 libyaml-0-2 \
     libxkbfile-dev libsecret-1-dev toilet re2c bison file libaio1 \
     libpng-dev libjpeg-dev libxxf86vm-dev libgl1-mesa-dev libsqlite3-dev \
     libogg-dev libvorbis-dev libopenal-dev libfreetype6-dev libgmp-dev \
