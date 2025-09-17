@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget tar dirmngr gnupg iproute2 make g++ locales git cmake zip unzip \
     libtool-bin autoconf automake jq rpl dos2unix iputils-ping \
     gcc libcairo2-dev libpango1.0-dev libgcc1 gdb libc6 binutils xz-utils \
-    liblzo2-2 net-tools netcat telnet libatomic1 libsdl1.2debian libsdl2-2.0-0 \
+    liblzo2-2 net-tools telnet libatomic1 libsdl1.2debian libsdl2-2.0-0 \
     libicu-dev icu-devtools libunwind8 libmariadb-dev-compat openssl \
     libc6-dev libstdc++6 libssl-dev libcurl4-gnutls-dev libjsoncpp-dev \
     python3 python3-pip build-essential zlib1g-dev libbz2-dev libreadline-dev \
