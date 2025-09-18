@@ -6,8 +6,9 @@ export INTERNAL_IP
 
 
 # Replace Startup Variables
-MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+MODIFIED_STARTUP=$(echo -e $(echo -e ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g'))
+echo -e ":/home/container$ ${MODIFIED_STARTUP}"
 
 # Run the Server
-bash /minecraft.sh "${MODIFIED_STARTUP}"
+eval ${MODIFIED_STARTUP}
 
