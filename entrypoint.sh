@@ -10,5 +10,5 @@ MODIFIED_STARTUP=$(echo -e $(echo -e ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/
 echo -e ":/home/container$ ${MODIFIED_STARTUP}"
 
 # Run the Server
-eval ${MODIFIED_STARTUP}
+bash /minecraft.sh ${MODIFIED_STARTUP}
 

@@ -39,7 +39,8 @@ RUN chmod +x /minecraft.sh /usr/local/bin/rcon \
 # Set timezone and locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen en_US.UTF-8 \
-    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
+    && apt-get update && apt-get install -y --no-install-recommends toilet jq
 
 # Switch to non-root user
 USER container
