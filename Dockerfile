@@ -1,50 +1,106 @@
-FROM ghcr.io/jitesoft/debian:bookworm-slim
+FROM ghcr.io/jitesoft/debian:trixie-slim
 
 LABEL author="Devil38" maintainer="itznya10@gmail.com"
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    TZ=UTC \
-    LANG=en_US.UTF-8 \
-    LANGUAGE=en_US:en \
-    LC_ALL=en_US.UTF-8 \
-    USER=container \
-    HOME=/home/container
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+ENV USER=container
+ENV HOME=/home/container
 
-# Set timezone and locale
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
-    && apt-get update && apt-get install -y --no-install-recommends locales \
-    && dpkg-reconfigure --frontend noninteractive locales
+# Base system & essentials
+RUN apt-get update && apt-get -y --no-install-recommends install \
+    apt-utils curl wget tar ca-certificates gnupg dirmngr iproute2 \
+    software-properties-common apt-transport-https locales git \
+    make g++ cmake zip unzip autoconf automake libtool-bin jq rpl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create user and group
+# User
 RUN addgroup --gid 998 container \
- && useradd -m -u 999 -d $HOME -g container -s /bin/bash container
+ && useradd -m -u 999 -d /home/container -g container -s /bin/bash container
 
-# Install essential tools, libraries, and 32-bit support for Steamcmd
+# Timezone & locale
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+ && echo $TZ > /etc/timezone \
+ && update-locale LANG=en_US.UTF-8 \
+ && dpkg-reconfigure --frontend noninteractive locales
+
+# Core build and runtime deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc gdb libc6-dev libstdc++6 libssl3 libssl-dev \
+    libcairo2-dev libpango1.0-dev libicu-dev icu-devtools \
+    libunwind8 libmariadb-dev-compat zlib1g-dev libbz2-dev \
+    libreadline-dev libncurses5-dev libncursesw5-dev tk-dev \
+    libffi-dev python3 python3-pip python3-dev build-essential \
+    libasound2 libglib2.0-0 libnss3 libpulse0 libxslt1.1 \
+    libxkbcommon0 libyaml-0-2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Extra tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libxkbfile-dev libsecret-1-dev toilet re2c bison file less \
+    && rm -rf /var/lib/apt/lists/*
+
+# Dangerous binaries cleanup
+RUN rm -f /usr/bin/dd /usr/bin/fallocate /usr/bin/truncate /usr/bin/xfs_mkfile
+
+# Loader
+COPY ./minecraft.sh /minecraft.sh
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends dos2unix iputils-ping \
+ && dos2unix /minecraft.sh \
+ && chmod +x /minecraft.sh \
+ && rm -rf /var/lib/apt/lists/*
+
+# MariaDB client deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libncurses5 libaio1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Minetest build deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++ make libc6-dev cmake libpng-dev libjpeg-dev libxxf86vm-dev \
+    libgl1-mesa-dev libsqlite3-dev libogg-dev libvorbis-dev \
+    libopenal-dev libcurl4-gnutls-dev libfreetype6-dev zlib1g-dev \
+    libgmp-dev libjsoncpp-dev libzstd-dev libluajit-5.1-dev \
+    libirrlicht-dev libirrlicht-doc \
+    && rm -rf /var/lib/apt/lists/*
+
+# SteamCMD libs (i386 support)
 RUN dpkg --add-architecture i386 \
  && apt-get update && apt-get install -y --no-install-recommends \
-    curl wget iproute2 tar unzip dos2unix iputils-ping net-tools telnet tzdata \
-    lib32gcc-s1 lib32stdc++6 lib32z1 libtinfo5:i386 libncurses5:i386 \
-    libcurl3-gnutls:i386 libtinfo6:i386 libcurl4:i386 libsdl2-2.0-0:i386 \
-    libsdl1.2debian libfontconfig1 libpulse0 libgl1-mesa-glx libasound2 \
-    libogg-dev libvorbis-dev libopenal-dev libjpeg62-turbo libpng16-16 \
- && rm -f /usr/bin/dd /usr/bin/fallocate /usr/bin/truncate /usr/bin/xfs_mkfile \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
+    libtinfo6:i386 libncurses6:i386 libcurl4-gnutls-dev:i386 \
+    lib32gcc-s1 lib32stdc++6 lib32z1 \
+    libsdl2-2.0-0:i386 libssl3:i386 \
+    tar curl gcc g++ gdb iproute2 netcat telnet net-tools \
+    libfontconfig1 tzdata \
+ && rm -rf /var/lib/apt/lists/*
 
+# PHP, Nginx, Composer (Debian 13 ships php8.2+)
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends \
+    lsb-release ca-certificates curl gnupg \
+ && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list \
+ && curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/sury-keyring.gpg \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+    php8.2 php8.2-common php8.2-cli php8.2-gd php8.2-mysql php8.2-mbstring \
+    php8.2-bcmath php8.2-xml php8.2-fpm php8.2-curl php8.2-zip \
+    nginx \
+ && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+ && rm -rf /var/lib/apt/lists/*
+
+# Other stuff
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    xdg-user-dirs \
+ && rm -rf /var/lib/apt/lists/*
+ 
+# RCON
 # Copy loader scripts and RCON, set permissions
 COPY ./minecraft.sh /minecraft.sh
 COPY ./rcon /usr/local/bin/rcon
 RUN chmod +x /minecraft.sh /usr/local/bin/rcon \
  && dos2unix /minecraft.sh
- 
-# Set timezone and locale
-RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
-    && locale-gen en_US.UTF-8 \
-    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
-    && apt-get update && apt-get install -y --no-install-recommends toilet jq ca-certificates
-    
-RUN update-ca-certificates
 
-# Switch to non-root user
 USER container
 WORKDIR /home/container
 
