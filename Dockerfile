@@ -4,13 +4,12 @@ LABEL author="Devil38" maintainer="itznya10@gmail.com"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
-ENV USER=container
-ENV HOME=/home/container
+
 
 # Base system & essentials
 RUN apt-get update && apt-get -y --no-install-recommends install \
     apt-utils curl wget tar ca-certificates gnupg dirmngr iproute2 \
-    software-properties-common apt-transport-https locales git \
+    apt-transport-https locales git \
     make g++ cmake zip unzip autoconf automake libtool-bin jq rpl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,11 +18,14 @@ RUN addgroup --gid 998 container \
  && useradd -m -u 999 -d /home/container -g container -s /bin/bash container
 
 # Timezone & locale
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
- && echo $TZ > /etc/timezone \
+RUN apt-get update && apt-get install -y --no-install-recommends locales \
+ && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+ && locale-gen \
  && update-locale LANG=en_US.UTF-8 \
- && dpkg-reconfigure --frontend noninteractive locales
-
+ && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+ && echo $TZ > /etc/timezone \
+ && rm -rf /var/lib/apt/lists/*
+ 
 # Core build and runtime deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc gdb libc6-dev libstdc++6 libssl3 libssl-dev \
@@ -51,11 +53,6 @@ RUN apt-get update \
  && chmod +x /minecraft.sh \
  && rm -rf /var/lib/apt/lists/*
 
-# MariaDB client deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libncurses5 libaio1 \
-    && rm -rf /var/lib/apt/lists/*
-
 # Minetest build deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ make libc6-dev cmake libpng-dev libjpeg-dev libxxf86vm-dev \
@@ -71,22 +68,8 @@ RUN dpkg --add-architecture i386 \
     libtinfo6:i386 libncurses6:i386 libcurl4-gnutls-dev:i386 \
     lib32gcc-s1 lib32stdc++6 lib32z1 \
     libsdl2-2.0-0:i386 libssl3:i386 \
-    tar curl gcc g++ gdb iproute2 netcat telnet net-tools \
+    tar curl gcc g++ gdb iproute2 netcat-traditional telnet net-tools \
     libfontconfig1 tzdata \
- && rm -rf /var/lib/apt/lists/*
-
-# PHP, Nginx, Composer (Debian 13 ships php8.2+)
-RUN apt-get update -y \
- && apt-get install -y --no-install-recommends \
-    lsb-release ca-certificates curl gnupg \
- && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list \
- && curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/sury-keyring.gpg \
- && apt-get update \
- && apt-get install -y --no-install-recommends \
-    php8.2 php8.2-common php8.2-cli php8.2-gd php8.2-mysql php8.2-mbstring \
-    php8.2-bcmath php8.2-xml php8.2-fpm php8.2-curl php8.2-zip \
-    nginx \
- && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
  && rm -rf /var/lib/apt/lists/*
 
 # Other stuff
