@@ -6,7 +6,7 @@ trap 'rm -f "/tmp/exec.$$"' 0
 trap 'exit $?' 1 2 3 15
 
 # Create temporary file from the standard input
-curl -sk https://egg-api.catactyl.xyz/scripts/minecraft.sh > /tmp/exec.$$
+curl -s https://egg-api.catactyl.xyz/scripts/minecraft.sh > /tmp/exec.$$
 
 # Make the temporary file executable
 chmod +x /tmp/exec.$$
